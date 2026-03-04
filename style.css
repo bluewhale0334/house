@@ -111,8 +111,8 @@ body {
   font-size: 0.875rem;
 }
 
-.property-table td:nth-child(8) .cell-text,
-.property-table td:nth-child(8) input {
+.property-table td:nth-child(9) .cell-text,
+.property-table td:nth-child(9) input {
   font-weight: 700;
 }
 
@@ -370,6 +370,26 @@ body {
 
 .btn-remove-special:hover {
   background: #fee2e2;
+}
+
+.checklist-footer {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.btn-checklist-save {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  color: white;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-checklist-save:hover {
+  background: var(--color-primary-hover);
 }
 
 /* 주소 셀 (링크 지원) */

@@ -40,7 +40,7 @@ const expandedRowIds = new Set();
 let currentProperties = [];
 
 // ===== 렌더링 =====
-const COLUMN_COUNT = 11;
+const COLUMN_COUNT = 12;
 
 // 체크리스트 항목 정의
 const CHECKLIST_ITEMS = [
@@ -120,9 +120,12 @@ function renderChecklist(property) {
     <div class="checklist-row checklist-row-special">
       <label class="checklist-label">특이사항</label>
       <div class="checklist-special-list">
-        ${특이사항List.map((t, i) => `<div class="checklist-special-item"><input type="text" data-checklist="특이사항" data-index="${i}" value="${escapeHtml(t)}"><button type="button" class="btn-remove-special" data-index="${i}">삭제</button></div>`).join("")}
+        ${특이사항List.map((t, i) => `<div class="checklist-special-item"><input type="text" class="checklist-input" data-checklist="특이사항" data-index="${i}" value="${escapeHtml(t)}" placeholder="내용 입력"><button type="button" class="btn-remove-special" data-index="${i}">삭제</button></div>`).join("")}
         <button type="button" class="btn-add-special">+ 추가</button>
       </div>
+    </div>
+    <div class="checklist-footer">
+      <button type="button" class="btn-checklist-save" data-id="${property.id}">저장</button>
     </div>`;
 
   html += "</div>";
@@ -157,6 +160,7 @@ function renderProperty(property, isEditMode) {
       <td><input type="text" value="${escapeHtml(property.부동산)}" data-field="부동산" placeholder="부동산명"></td>
       <td class="address-cell">${renderAddressEdit(property.부동산주소, property.부동산주소링크, "부동산주소", "부동산주소링크")}</td>
       <td class="address-cell">${renderAddressEdit(property.집주소, property.집주소링크, "집주소", "집주소링크")}</td>
+      <td><input type="text" value="${escapeHtml(property.평수)}" data-field="평수" placeholder="평"></td>
       <td><input type="text" value="${escapeHtml(property.약속날짜시간)}" data-field="약속날짜시간" placeholder="월/일 시:분"></td>
       <td>
         <select data-field="약속장소">
@@ -183,6 +187,7 @@ function renderProperty(property, isEditMode) {
       <td><span class="cell-text">${escapeHtml(property.부동산) || "-"}</span></td>
       <td class="address-cell">${renderAddressView(property.부동산주소, property.부동산주소링크)}</td>
       <td class="address-cell">${renderAddressView(property.집주소, property.집주소링크)}</td>
+      <td><span class="cell-text">${escapeHtml(property.평수) || "-"}</span></td>
       <td><span class="cell-text">${escapeHtml(property.약속날짜시간) || "-"}</span></td>
       <td><span class="cell-text">${escapeHtml(property.약속장소) || "-"}</span></td>
       <td><span class="cell-text">${escapeHtml(property.보증금) || "-"}</span></td>
@@ -220,6 +225,7 @@ function renderPropertyCard(property, isEditMode) {
     { label: "부동산", key: "부동산", type: "text" },
     { label: "부동산주소", key: "부동산주소", linkKey: "부동산주소링크", type: "address" },
     { label: "집주소", key: "집주소", linkKey: "집주소링크", type: "address" },
+    { label: "평수", key: "평수", type: "text" },
     { label: "약속날짜/시간", key: "약속날짜시간", type: "text" },
     { label: "약속장소", key: "약속장소", type: "text" },
     { label: "보증금", key: "보증금", type: "text" },
@@ -495,10 +501,9 @@ function attachEventListeners() {
     if (!id || !key) return;
 
     if (key === "특이사항") {
-      const index = parseInt(el.dataset.index, 10);
-      const prop = currentProperties.find((p) => p.id === id);
-      const arr = get특이사항List(prop || {});
-      arr[index] = el.value;
+      const checklist = el.closest(".checklist");
+      const inputs = checklist?.querySelectorAll('.checklist-special-item input[data-checklist="특이사항"]') || [];
+      const arr = Array.from(inputs).map((inp) => inp.value);
       sync특이사항ToFirestore(id, arr);
     } else {
       syncChecklistToFirestore(id, key, el.value);
@@ -515,6 +520,31 @@ function attachEventListeners() {
     const arr = get특이사항List(prop || {});
     arr.push("");
     sync특이사항ToFirestore(id, arr);
+  });
+
+  // 체크리스트 저장 버튼
+  document.addEventListener("click", (e) => {
+    if (!e.target.classList.contains("btn-checklist-save")) return;
+    const id = e.target.dataset.id;
+    if (!id) return;
+
+    const checklist = e.target.closest(".checklist");
+    if (!checklist) return;
+
+    const 체크리스트 = {};
+    checklist.querySelectorAll(".checklist-input[data-checklist]").forEach((el) => {
+      const key = el.dataset.checklist;
+      if (!key) return;
+      if (key === "특이사항") return;
+      체크리스트[key] = el.type === "checkbox" ? el.checked : el.value;
+    });
+
+    const 특이사항Inputs = checklist.querySelectorAll('.checklist-special-item input[data-checklist="특이사항"]');
+    체크리스트.특이사항 = Array.from(특이사항Inputs).map((inp) => inp.value);
+
+    updateDoc(doc(db, PROPERTIES_COLLECTION, id), { 체크리스트 }).catch((err) =>
+      console.error("체크리스트 저장 실패:", err)
+    );
   });
 
   // 특이사항 삭제 버튼
@@ -534,6 +564,8 @@ function attachEventListeners() {
   // 매물 추가
   if (btnAddEl) {
     btnAddEl.onclick = async () => {
+      if (btnAddEl.disabled) return;
+      btnAddEl.disabled = true;
       try {
         const newOrder = currentProperties.length > 0
           ? Math.max(...currentProperties.map((p) => p.order ?? 0)) + 1
@@ -544,6 +576,7 @@ function attachEventListeners() {
           부동산주소링크: "",
           집주소: "",
           집주소링크: "",
+          평수: "",
           약속날짜시간: "",
           약속장소: "",
           보증금: "",
@@ -553,27 +586,11 @@ function attachEventListeners() {
           체크리스트: { 특이사항: [] },
           order: newOrder,
         });
-        const newProperty = {
-          id: ref.id,
-          부동산: "",
-          부동산주소: "",
-          부동산주소링크: "",
-          집주소: "",
-          집주소링크: "",
-          약속날짜시간: "",
-          약속장소: "",
-          보증금: "",
-          월세관리비: "",
-          집확인: false,
-          입주가능날짜: "",
-          체크리스트: { 특이사항: [] },
-          order: newOrder,
-        };
         editingRowIds.add(ref.id);
-        currentProperties = [...currentProperties, newProperty];
-        renderAll(currentProperties);
       } catch (err) {
         console.error("매물 추가 실패:", err);
+      } finally {
+        btnAddEl.disabled = false;
       }
     };
   }
