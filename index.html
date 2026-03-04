@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>House</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>부동산 매물 정리</h1>
+    <p class="header-desc">방문 예정 매물을 한눈에 관리하세요</p>
+    <button type="button" class="btn-add" id="btnAdd">+ 매물 추가</button>
+  </header>
+
+  <main class="main">
+    <div class="table-wrapper">
+      <table class="property-table">
+        <thead>
+          <tr>
+            <th class="th-expand"></th>
+            <th>부동산</th>
+            <th>부동산주소</th>
+            <th>집주소</th>
+            <th>약속날짜/시간</th>
+            <th>약속장소</th>
+            <th>보증금</th>
+            <th>월세/관리비</th>
+            <th>집확인</th>
+            <th>입주가능날짜</th>
+          </tr>
+        </thead>
+        <tbody id="propertyList">
+          <!-- JS로 렌더링 -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
